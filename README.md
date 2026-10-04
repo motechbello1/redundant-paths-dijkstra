@@ -6,7 +6,7 @@ Only Dijkstra's algorithm is used for routing. Pass 1 finds the primary path. Pa
 (the sum of all link costs plus one) to every primary link and runs Dijkstra again, which finds a backup
 path that shares as few links as possible with the primary.
 
-**Live website:** _added after the first Vercel deployment_
+**Live website:** https://redundant-paths-dijkstra.vercel.app
 
 ## Files
 
