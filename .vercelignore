@@ -1,0 +1,6 @@
+# Files Vercel does not need to upload for the website
+.streamlit/
+figures/print/
+notebook_src.py
+build_notebook.py
+diagrams.py

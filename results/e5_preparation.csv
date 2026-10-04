@@ -1,0 +1,4 @@
+nodes,pairs,time to prepare all primary + backup paths (s)
+50,1225,0.284
+100,4950,2.496
+200,19900,18.272

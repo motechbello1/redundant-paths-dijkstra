@@ -1,0 +1,729 @@
+{
+  "versions": {
+    "python": "3.13.16",
+    "networkx": "3.6.1",
+    "numpy": "2.5.3",
+    "pandas": "3.0.5",
+    "matplotlib": "3.11.2",
+    "scipy": "1.18.1"
+  },
+  "machine": {
+    "processor": "x86_64",
+    "cores": 2
+  },
+  "topology": [
+    {
+      "network": "Hypothetical Nigerian backbone",
+      "nodes": 20,
+      "links": 31,
+      "min degree": 2,
+      "mean degree": 3.1,
+      "max degree": 5,
+      "density": 0.163,
+      "bridges (single-link cuts)": 0
+    },
+    {
+      "network": "Barabasi-Albert n=50, m=2",
+      "nodes": 50,
+      "links": 96,
+      "min degree": 2,
+      "mean degree": 3.84,
+      "max degree": 24,
+      "density": 0.078,
+      "bridges (single-link cuts)": 0
+    }
+  ],
+  "e1": [
+    {
+      "network": "Hypothetical Nigerian backbone",
+      "pairs checked": 190,
+      "costs that match": 190,
+      "agreement %": 100.0
+    },
+    {
+      "network": "Barabasi-Albert n=50, m=2",
+      "pairs checked": 1225,
+      "costs that match": 1225,
+      "agreement %": 100.0
+    },
+    {
+      "network": "Barabasi-Albert n=100, m=2",
+      "pairs checked": 4950,
+      "costs that match": 4950,
+      "agreement %": 100.0
+    },
+    {
+      "network": "Barabasi-Albert n=200, m=2",
+      "pairs checked": 19900,
+      "costs that match": 19900,
+      "agreement %": 100.0
+    }
+  ],
+  "e2": [
+    {
+      "network": "Nigeria-20",
+      "pairs": 190,
+      "fully separate backups": 188,
+      "fully separate %": 98.95,
+      "pairs where a separate pair existed but was missed": 2,
+      "median stretch": 1.523,
+      "mean stretch": 1.792,
+      "max stretch": 7.395,
+      "mean primary hops": 2.98,
+      "mean backup hops": 4.34
+    },
+    {
+      "network": "BA-50 (seed 42)",
+      "pairs": 1225,
+      "fully separate backups": 1225,
+      "fully separate %": 100.0,
+      "pairs where a separate pair existed but was missed": 0,
+      "median stretch": 1.647,
+      "mean stretch": 1.968,
+      "max stretch": 15.0,
+      "mean primary hops": 2.89,
+      "mean backup hops": 3.87
+    }
+  ],
+  "e2_seeds_fully_separate_pct_min": 96.0,
+  "e2_seeds_fully_separate_pct_max": 100.0,
+  "e2_seeds_median_stretch_mean": 1.5771000000000002,
+  "e2_traps": [
+    {
+      "pair": "Ibadan - Katsina",
+      "primary": "Ibadan > Ilorin > Minna > Abuja > Kaduna > Kano > Katsina",
+      "primary km": 1027.1,
+      "backup": "Ibadan > Benin City > Lokoja > Abuja > Jos > Bauchi > Kano > Katsina",
+      "backup km": 1269.0,
+      "shared link": "Kano - Katsina",
+      "a separate pair that does exist": "Ibadan > Ilorin > Minna > Sokoto > Katsina | Ibadan > Benin City > Lokoja > Abuja > Kaduna > Kano > Katsina"
+    },
+    {
+      "pair": "Ilorin - Katsina",
+      "primary": "Ilorin > Minna > Abuja > Kaduna > Kano > Katsina",
+      "primary km": 886.4,
+      "backup": "Ilorin > Minna > Sokoto > Katsina",
+      "backup km": 912.0,
+      "shared link": "Ilorin - Minna",
+      "a separate pair that does exist": "Ilorin > Minna > Sokoto > Katsina | Ilorin > Lokoja > Abuja > Kaduna > Kano > Katsina"
+    }
+  ],
+  "rules": [
+    {
+      "network": "Nigeria-20",
+      "rules, primary only": 567,
+      "rules, primary + backup": 1391,
+      "increase x": 2.45
+    },
+    {
+      "network": "BA-50",
+      "rules, primary only": 3539,
+      "rules, primary + backup": 8284,
+      "increase x": 2.34
+    }
+  ],
+  "lagos_maiduguri": {
+    "primary": [
+      "Lagos",
+      "Benin City",
+      "Lokoja",
+      "Abuja",
+      "Jos",
+      "Bauchi",
+      "Maiduguri"
+    ],
+    "backup": [
+      "Lagos",
+      "Ibadan",
+      "Benin City",
+      "Enugu",
+      "Makurdi",
+      "Yola",
+      "Maiduguri"
+    ],
+    "primary_cost": 1311.6,
+    "backup_cost": 1490.1
+  },
+  "abuja_example": {
+    "primary": [
+      "Garki",
+      "Asokoro",
+      "Wuse",
+      "Jabi",
+      "Gwarinpa"
+    ],
+    "backup": [
+      "Garki",
+      "Wuse",
+      "Maitama",
+      "Gwarinpa"
+    ],
+    "primary_cost": 11.0,
+    "backup_cost": 13
+  },
+  "e3": [
+    {
+      "network": "BA-50",
+      "links": 96,
+      "affected": 3539,
+      "protected": 3539,
+      "protected %": 100.0,
+      "unprotected": 0
+    },
+    {
+      "network": "Nigeria-20",
+      "links": 31,
+      "affected": 567,
+      "protected": 565,
+      "protected %": 99.65,
+      "unprotected": 2
+    }
+  ],
+  "e4": [
+    {
+      "network": "Nigeria-20",
+      "k": 1,
+      "method": "single",
+      "mean %": 90.1,
+      "95% CI half-width": 0.28
+    },
+    {
+      "network": "Nigeria-20",
+      "k": 1,
+      "method": "redundant",
+      "mean %": 99.96,
+      "95% CI half-width": 0.01
+    },
+    {
+      "network": "Nigeria-20",
+      "k": 1,
+      "method": "reachable",
+      "mean %": 100.0,
+      "95% CI half-width": 0.0
+    },
+    {
+      "network": "Nigeria-20",
+      "k": 2,
+      "method": "single",
+      "mean %": 81.55,
+      "95% CI half-width": 0.35
+    },
+    {
+      "network": "Nigeria-20",
+      "k": 2,
+      "method": "redundant",
+      "mean %": 96.79,
+      "95% CI half-width": 0.18
+    },
+    {
+      "network": "Nigeria-20",
+      "k": 2,
+      "method": "reachable",
+      "mean %": 99.82,
+      "95% CI half-width": 0.06
+    },
+    {
+      "network": "Nigeria-20",
+      "k": 3,
+      "method": "single",
+      "mean %": 73.68,
+      "95% CI half-width": 0.37
+    },
+    {
+      "network": "Nigeria-20",
+      "k": 3,
+      "method": "redundant",
+      "mean %": 91.95,
+      "95% CI half-width": 0.27
+    },
+    {
+      "network": "Nigeria-20",
+      "k": 3,
+      "method": "reachable",
+      "mean %": 99.39,
+      "95% CI half-width": 0.14
+    },
+    {
+      "network": "Nigeria-20",
+      "k": 4,
+      "method": "single",
+      "mean %": 66.61,
+      "95% CI half-width": 0.38
+    },
+    {
+      "network": "Nigeria-20",
+      "k": 4,
+      "method": "redundant",
+      "mean %": 85.84,
+      "95% CI half-width": 0.33
+    },
+    {
+      "network": "Nigeria-20",
+      "k": 4,
+      "method": "reachable",
+      "mean %": 98.72,
+      "95% CI half-width": 0.19
+    },
+    {
+      "network": "Nigeria-20",
+      "k": 5,
+      "method": "single",
+      "mean %": 59.96,
+      "95% CI half-width": 0.39
+    },
+    {
+      "network": "Nigeria-20",
+      "k": 5,
+      "method": "redundant",
+      "mean %": 79.29,
+      "95% CI half-width": 0.37
+    },
+    {
+      "network": "Nigeria-20",
+      "k": 5,
+      "method": "reachable",
+      "mean %": 97.3,
+      "95% CI half-width": 0.28
+    },
+    {
+      "network": "Nigeria-20",
+      "k": 6,
+      "method": "single",
+      "mean %": 53.31,
+      "95% CI half-width": 0.37
+    },
+    {
+      "network": "Nigeria-20",
+      "k": 6,
+      "method": "redundant",
+      "mean %": 71.81,
+      "95% CI half-width": 0.4
+    },
+    {
+      "network": "Nigeria-20",
+      "k": 6,
+      "method": "reachable",
+      "mean %": 95.34,
+      "95% CI half-width": 0.38
+    },
+    {
+      "network": "BA-50",
+      "k": 1,
+      "method": "single",
+      "mean %": 96.9,
+      "95% CI half-width": 0.15
+    },
+    {
+      "network": "BA-50",
+      "k": 1,
+      "method": "redundant",
+      "mean %": 100.0,
+      "95% CI half-width": 0.0
+    },
+    {
+      "network": "BA-50",
+      "k": 1,
+      "method": "reachable",
+      "mean %": 100.0,
+      "95% CI half-width": 0.0
+    },
+    {
+      "network": "BA-50",
+      "k": 2,
+      "method": "single",
+      "mean %": 94.14,
+      "95% CI half-width": 0.18
+    },
+    {
+      "network": "BA-50",
+      "k": 2,
+      "method": "redundant",
+      "mean %": 99.75,
+      "95% CI half-width": 0.03
+    },
+    {
+      "network": "BA-50",
+      "k": 2,
+      "method": "reachable",
+      "mean %": 99.97,
+      "95% CI half-width": 0.02
+    },
+    {
+      "network": "BA-50",
+      "k": 3,
+      "method": "single",
+      "mean %": 91.13,
+      "95% CI half-width": 0.22
+    },
+    {
+      "network": "BA-50",
+      "k": 3,
+      "method": "redundant",
+      "mean %": 99.29,
+      "95% CI half-width": 0.05
+    },
+    {
+      "network": "BA-50",
+      "k": 3,
+      "method": "reachable",
+      "mean %": 99.94,
+      "95% CI half-width": 0.02
+    },
+    {
+      "network": "BA-50",
+      "k": 4,
+      "method": "single",
+      "mean %": 88.53,
+      "95% CI half-width": 0.26
+    },
+    {
+      "network": "BA-50",
+      "k": 4,
+      "method": "redundant",
+      "mean %": 98.6,
+      "95% CI half-width": 0.07
+    },
+    {
+      "network": "BA-50",
+      "k": 4,
+      "method": "reachable",
+      "mean %": 99.87,
+      "95% CI half-width": 0.03
+    },
+    {
+      "network": "BA-50",
+      "k": 5,
+      "method": "single",
+      "mean %": 85.49,
+      "95% CI half-width": 0.28
+    },
+    {
+      "network": "BA-50",
+      "k": 5,
+      "method": "redundant",
+      "mean %": 97.67,
+      "95% CI half-width": 0.1
+    },
+    {
+      "network": "BA-50",
+      "k": 5,
+      "method": "reachable",
+      "mean %": 99.78,
+      "95% CI half-width": 0.04
+    },
+    {
+      "network": "BA-50",
+      "k": 6,
+      "method": "single",
+      "mean %": 82.86,
+      "95% CI half-width": 0.3
+    },
+    {
+      "network": "BA-50",
+      "k": 6,
+      "method": "redundant",
+      "mean %": 96.56,
+      "95% CI half-width": 0.12
+    },
+    {
+      "network": "BA-50",
+      "k": 6,
+      "method": "reachable",
+      "mean %": 99.6,
+      "95% CI half-width": 0.05
+    }
+  ],
+  "e4_tests": [
+    {
+      "network": "Nigeria-20",
+      "k": 1,
+      "wilcoxon_stat": 2001000.0,
+      "p_value": 0.0,
+      "trials_where_redundant_better": 2000,
+      "trials_tied": 0
+    },
+    {
+      "network": "Nigeria-20",
+      "k": 2,
+      "wilcoxon_stat": 1953276.0,
+      "p_value": 0.0,
+      "trials_where_redundant_better": 1976,
+      "trials_tied": 24
+    },
+    {
+      "network": "Nigeria-20",
+      "k": 3,
+      "wilcoxon_stat": 1987021.0,
+      "p_value": 0.0,
+      "trials_where_redundant_better": 1993,
+      "trials_tied": 7
+    },
+    {
+      "network": "Nigeria-20",
+      "k": 4,
+      "wilcoxon_stat": 1993006.0,
+      "p_value": 0.0,
+      "trials_where_redundant_better": 1996,
+      "trials_tied": 4
+    },
+    {
+      "network": "Nigeria-20",
+      "k": 5,
+      "wilcoxon_stat": 2001000.0,
+      "p_value": 0.0,
+      "trials_where_redundant_better": 2000,
+      "trials_tied": 0
+    },
+    {
+      "network": "Nigeria-20",
+      "k": 6,
+      "wilcoxon_stat": 2001000.0,
+      "p_value": 0.0,
+      "trials_where_redundant_better": 2000,
+      "trials_tied": 0
+    },
+    {
+      "network": "BA-50",
+      "k": 1,
+      "wilcoxon_stat": 1549680.0,
+      "p_value": 1.6399332684426118e-289,
+      "trials_where_redundant_better": 1760,
+      "trials_tied": 240
+    },
+    {
+      "network": "BA-50",
+      "k": 2,
+      "wilcoxon_stat": 1919820.0,
+      "p_value": 0.0,
+      "trials_where_redundant_better": 1959,
+      "trials_tied": 41
+    },
+    {
+      "network": "BA-50",
+      "k": 3,
+      "wilcoxon_stat": 1983036.0,
+      "p_value": 0.0,
+      "trials_where_redundant_better": 1991,
+      "trials_tied": 9
+    },
+    {
+      "network": "BA-50",
+      "k": 4,
+      "wilcoxon_stat": 1999000.0,
+      "p_value": 0.0,
+      "trials_where_redundant_better": 1999,
+      "trials_tied": 1
+    },
+    {
+      "network": "BA-50",
+      "k": 5,
+      "wilcoxon_stat": 2001000.0,
+      "p_value": 0.0,
+      "trials_where_redundant_better": 2000,
+      "trials_tied": 0
+    },
+    {
+      "network": "BA-50",
+      "k": 6,
+      "wilcoxon_stat": 2001000.0,
+      "p_value": 0.0,
+      "trials_where_redundant_better": 2000,
+      "trials_tied": 0
+    }
+  ],
+  "e5": [
+    {
+      "network": "BA-50",
+      "failures": 84,
+      "restoration_median_ms": 4.001676500024587,
+      "restoration_max_ms": 25.163467000083983,
+      "protection_median_ms": 0.006004499937262153,
+      "protection_max_ms": 0.04158399997322704,
+      "times faster (median)": 666.4
+    },
+    {
+      "network": "Nigeria-20",
+      "failures": 31,
+      "restoration_median_ms": 0.5713639998248254,
+      "restoration_max_ms": 1.8869600000925857,
+      "protection_median_ms": 0.002278000010846881,
+      "protection_max_ms": 0.007615999948029639,
+      "times faster (median)": 250.8
+    }
+  ],
+  "e5_scale": [
+    {
+      "nodes": 50,
+      "links": 96,
+      "one Dijkstra to a target (ms)": 0.0663,
+      "two-pass per pair (ms)": 0.236,
+      "Dijkstra to all nodes (ms)": 0.1119
+    },
+    {
+      "nodes": 100,
+      "links": 196,
+      "one Dijkstra to a target (ms)": 0.1373,
+      "two-pass per pair (ms)": 0.4839,
+      "Dijkstra to all nodes (ms)": 0.3823
+    },
+    {
+      "nodes": 200,
+      "links": 396,
+      "one Dijkstra to a target (ms)": 0.3523,
+      "two-pass per pair (ms)": 0.9701,
+      "Dijkstra to all nodes (ms)": 0.4791
+    },
+    {
+      "nodes": 400,
+      "links": 796,
+      "one Dijkstra to a target (ms)": 0.558,
+      "two-pass per pair (ms)": 1.9301,
+      "Dijkstra to all nodes (ms)": 1.0121
+    },
+    {
+      "nodes": 800,
+      "links": 1596,
+      "one Dijkstra to a target (ms)": 1.4049,
+      "two-pass per pair (ms)": 4.2404,
+      "Dijkstra to all nodes (ms)": 2.1803
+    },
+    {
+      "nodes": 1600,
+      "links": 3196,
+      "one Dijkstra to a target (ms)": 2.6686,
+      "two-pass per pair (ms)": 8.2986,
+      "Dijkstra to all nodes (ms)": 4.4574
+    }
+  ],
+  "e5_prep": [
+    {
+      "nodes": 50,
+      "pairs": 1225,
+      "time to prepare all primary + backup paths (s)": 0.284
+    },
+    {
+      "nodes": 100,
+      "pairs": 4950,
+      "time to prepare all primary + backup paths (s)": 2.496
+    },
+    {
+      "nodes": 200,
+      "pairs": 19900,
+      "time to prepare all primary + backup paths (s)": 18.272
+    }
+  ],
+  "e6_settings": {
+    "duration_s": 300.0,
+    "rate_pps": 50,
+    "n_failures": 20,
+    "repair_range_s": [
+      5.0,
+      30.0
+    ],
+    "detect_s": 0.05,
+    "compute_s": 0.0005713639998248254,
+    "runs": 30
+  },
+  "e6_main": {
+    "single_pdr": {
+      "mean": 99.803,
+      "ci": 0.0783
+    },
+    "redundant_pdr": {
+      "mean": 99.8258,
+      "ci": 0.0779
+    },
+    "single_avoidable_lost": {
+      "mean": 1882.6333,
+      "ci": 128.0349
+    },
+    "redundant_avoidable_lost": {
+      "mean": 1233.2333,
+      "ci": 99.0875
+    },
+    "unavoidable_lost": {
+      "mean": 3731.6333,
+      "ci": 2213.7832
+    },
+    "single_interruptions": {
+      "mean": 380.8333,
+      "ci": 26.0016
+    },
+    "redundant_interruptions": {
+      "mean": 382.4333,
+      "ci": 24.7805
+    },
+    "redundant_fast_switches": {
+      "mean": 261.9,
+      "ci": 14.8463
+    },
+    "redundant_reruns": {
+      "mean": 120.5333,
+      "ci": 16.9237
+    },
+    "single_reruns": {
+      "mean": 380.8333,
+      "ci": 26.0016
+    }
+  },
+  "e6_main_reduction_pct": 34.494236795977265,
+  "e6_main_fast_switch_share_pct": 68.48252418722217,
+  "e6_main_wilcoxon_loss": {
+    "W": 0.0,
+    "p": 9.313225746154785e-10
+  },
+  "e6_main_wilcoxon_pdr": {
+    "W": 465.0,
+    "p": 9.313225746154785e-10
+  },
+  "e6_sensitivity": [
+    {
+      "restoration total (ms)": 100.6,
+      "plain Dijkstra avoidable lost": 1882.6,
+      "plain CI": 128.0,
+      "two-pass avoidable lost": 1233.2,
+      "two-pass CI": 99.1,
+      "reduction %": 34.5,
+      "plain PDR %": 99.803,
+      "two-pass PDR %": 99.8258,
+      "p (Wilcoxon)": 9.313225746154785e-10
+    },
+    {
+      "restoration total (ms)": 200.6,
+      "plain Dijkstra avoidable lost": 3781.0,
+      "plain CI": 256.1,
+      "two-pass avoidable lost": 1831.6,
+      "two-pass CI": 177.9,
+      "reduction %": 51.6,
+      "plain PDR %": 99.7364,
+      "two-pass PDR %": 99.8048,
+      "p (Wilcoxon)": 9.313225746154785e-10
+    },
+    {
+      "restoration total (ms)": 300.6,
+      "plain Dijkstra avoidable lost": 5677.0,
+      "plain CI": 386.0,
+      "two-pass avoidable lost": 2429.6,
+      "two-pass CI": 260.4,
+      "reduction %": 57.2,
+      "plain PDR %": 99.6699,
+      "two-pass PDR %": 99.7838,
+      "p (Wilcoxon)": 9.313225746154785e-10
+    },
+    {
+      "restoration total (ms)": 500.6,
+      "plain Dijkstra avoidable lost": 9441.9,
+      "plain CI": 649.8,
+      "two-pass avoidable lost": 3615.1,
+      "two-pass CI": 428.0,
+      "reduction %": 61.7,
+      "plain PDR %": 99.5378,
+      "two-pass PDR %": 99.7422,
+      "p (Wilcoxon)": 9.313225746154785e-10
+    }
+  ],
+  "routing_table_build_ms": {
+    "nigeria": 18.555541000068843,
+    "ba50": 301.6913559999921
+  }
+}

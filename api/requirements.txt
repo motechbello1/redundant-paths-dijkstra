@@ -1,0 +1,5 @@
+# Libraries for the Vercel API only (the notebook's full list is in ../requirements.txt).
+# networkx and numpy are pinned to the versions the notebook results were produced with.
+fastapi>=0.110
+networkx==3.6.1
+numpy==2.5.3

@@ -1,0 +1,5 @@
+network,pairs checked,costs that match,agreement %
+Hypothetical Nigerian backbone,190,190,100.0
+"Barabasi-Albert n=50, m=2",1225,1225,100.0
+"Barabasi-Albert n=100, m=2",4950,4950,100.0
+"Barabasi-Albert n=200, m=2",19900,19900,100.0
