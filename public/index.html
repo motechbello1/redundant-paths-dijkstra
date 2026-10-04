@@ -3,80 +3,75 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Redundant Path Planner</title>
-<meta name="description" content="Two-pass Dijkstra: a primary path and a separate backup path for every pair of nodes. MSc Computer Science project, Baze University, Abuja.">
+<meta name="theme-color" content="#f7f7f5">
+<title>Redundant | Path Planner</title>
+<meta name="description" content="Find the shortest path, see your backup, and test what happens when a link breaks. An interactive two-pass Dijkstra study by Maryam Sirajo, Baze University.">
 <link rel="icon" href="favicon.svg" type="image/svg+xml">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&family=Source+Serif+4:opsz,wght@8..60,600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;450;500;550;600;650;700&family=Instrument+Sans:wght@400;500;600;650;700&display=swap" rel="stylesheet">
+<script>try{document.documentElement.dataset.theme=localStorage.getItem('path-planner-theme')||'light'}catch(e){}</script>
 <link rel="stylesheet" href="styles.css">
 </head>
 <body>
+<a class="skip-link" href="#main">Skip to planner</a>
 <header class="site-header">
   <div class="wrap header-inner">
-    <div>
-      <p class="eyebrow">Two-pass Dijkstra</p>
-      <h1>Redundant Path Planner</h1>
-      <p class="lede">Pick two places. Pass&nbsp;1 finds the cheapest path. Pass&nbsp;2 makes those links very expensive and runs Dijkstra again, which finds a backup that avoids them. Then cut links and watch what each method does.</p>
-    </div>
-    <p class="byline">MSc Computer Science project<br>Maryam Sirajo, BU/23C/PGS/9469<br>Baze University, Abuja</p>
+    <a class="brand" href="#net=nigeria&from=Lagos&to=Maiduguri&tab=route" aria-label="Redundant Path Planner home">
+      <svg class="brand-mark" viewBox="0 0 36 36" fill="none" aria-hidden="true"><path d="M8 27V12a5 5 0 0 1 5-5h10a5 5 0 0 1 0 10H13a5 5 0 0 0 0 10h15" stroke="currentColor" stroke-width="2.5"/><circle cx="8" cy="27" r="4" fill="currentColor"/><circle cx="28" cy="27" r="4" fill="currentColor"/></svg>
+      <span>Redundant<span class="brand-caption">PATH PLANNER</span></span>
+    </a>
+    <div class="header-actions"><span class="study-label">A network reliability study</span><button class="icon-btn" id="themeToggle" type="button" aria-label="Switch to dark theme" title="Change theme"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M20 14.2A8.5 8.5 0 0 1 9.8 4a8.5 8.5 0 1 0 10.2 10.2Z"/></svg></button><button class="btn header-help" data-goto="about" type="button">How it works <span aria-hidden="true">↗</span></button></div>
   </div>
 </header>
-
-<div class="controls-bar">
-  <div class="wrap controls">
-    <label class="field">
-      <span>Network</span>
-      <select id="net"></select>
-    </label>
-    <label class="field">
-      <span>From</span>
-      <select id="from"></select>
-    </label>
-    <button id="swap" class="icon-btn" type="button" title="Swap From and To" aria-label="Swap From and To">
-      <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path d="M7 7h11l-3-3M17 17H6l3 3" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-    </button>
-    <label class="field">
-      <span>To</span>
-      <select id="to"></select>
-    </label>
-    <label class="toggle">
-      <input type="checkbox" id="showCosts"> <span>Show link costs</span>
-    </label>
-  </div>
-</div>
-
-<nav class="tabs-bar" aria-label="Sections">
-  <div class="wrap tabs" role="tablist">
-    <button role="tab" class="tab" data-tab="route" aria-selected="true">Route planner</button>
-    <button role="tab" class="tab" data-tab="cut" aria-selected="false">Cut a link</button>
-    <button role="tab" class="tab" data-tab="trace" aria-selected="false">Dijkstra step by step</button>
-    <button role="tab" class="tab" data-tab="results" aria-selected="false">Experiment results</button>
-    <button role="tab" class="tab" data-tab="about" aria-selected="false">How it works</button>
-  </div>
-</nav>
-
-<main class="wrap">
-  <div id="error" class="banner banner-bad" hidden></div>
-
-  <!-- Map + side panel (route, cut, trace) -->
-  <section id="workspace" class="workspace">
-    <div class="map-card">
-      <div class="map-head">
-        <p id="mapTitle" class="map-title"></p>
-        <p id="mapHint" class="map-hint"></p>
-      </div>
-      <div id="map" class="map" aria-live="polite"></div>
-      <div id="legend" class="legend"></div>
-    </div>
-    <aside id="panel" class="panel"></aside>
+<main class="wrap" id="main" tabindex="-1">
+  <section class="intro" aria-labelledby="pageTitle">
+    <div><p class="eyebrow"><span class="live-dot"></span> THE NETWORK ROUTING LAB</p><h1 id="pageTitle">One destination.<br><span>More than one way.</span></h1><p class="lede">Find your main route and its backup.<br class="mobile-break"> Then see what happens when a link breaks.</p></div>
+    <button class="intro-example" id="startExample" type="button"><span class="example-art" aria-hidden="true"><svg viewBox="0 0 144 52" fill="none"><path d="M10 27 48 9 94 9 134 27" stroke="currentColor" stroke-width="2"/><path d="M10 27 48 44 94 44 134 27" stroke="var(--backup)" stroke-width="2" stroke-dasharray="5 4"/><g fill="var(--card)" stroke="currentColor" stroke-width="2"><circle cx="10" cy="27" r="5"/><circle cx="48" cy="9" r="4"/><circle cx="94" cy="9" r="4"/><circle cx="134" cy="27" r="5"/></g></svg></span><span><b>New here? Start small.</b><small>Try the 6-district Abuja example <span aria-hidden="true">↗</span></small></span></button>
   </section>
-
-  <!-- Results -->
-  <section id="results" class="page" hidden></section>
-
-  <!-- About -->
-  <section id="about" class="page" hidden>
+  <nav class="tabs-bar" aria-label="Explore the study">
+    <div class="tabs" role="tablist" aria-label="Study sections">
+      <button role="tab" id="tab-route" class="tab" data-tab="route" aria-controls="workspace" aria-selected="true" tabindex="0"><span class="tab-num">01</span> Plan a route</button>
+      <button role="tab" id="tab-cut" class="tab" data-tab="cut" aria-controls="workspace" aria-selected="false" tabindex="-1"><span class="tab-num">02</span> Test a break</button>
+      <button role="tab" id="tab-trace" class="tab" data-tab="trace" aria-controls="workspace" aria-selected="false" tabindex="-1"><span class="tab-num">03</span> Watch the steps</button>
+      <button role="tab" id="tab-results" class="tab" data-tab="results" aria-controls="results" aria-selected="false" tabindex="-1">Study results</button>
+      <button role="tab" id="tab-about" class="tab" data-tab="about" aria-controls="about" aria-selected="false" tabindex="-1">How it works</button>
+    </div>
+  </nav>
+  <div id="error" class="banner banner-bad" role="alert" hidden><span id="errorMessage"></span><button class="btn" id="retry" type="button">Try again</button></div>
+  <div class="studio-grid" id="studio">
+    <aside class="planner" id="planner" aria-labelledby="plannerTitle">
+      <div class="planner-heading"><span class="section-label">YOUR ROUTE</span><h2 id="plannerTitle">Where are we going?</h2><p>Choose a network and two places.</p></div>
+      <div class="controls" id="routeControls">
+        <label class="field network-field"><span><i>1</i> Choose a network</span><select id="net" disabled aria-describedby="networkNote"><option>Loading networks…</option></select></label>
+        <p class="field-note" id="networkNote">Getting your networks ready.</p>
+        <div class="endpoints">
+          <label class="field"><span><i>2</i> Starting point</span><select id="from" disabled><option>Loading…</option></select></label>
+          <button id="swap" class="icon-btn swap-btn" type="button" title="Swap start and destination" aria-label="Swap start and destination" disabled><svg viewBox="0 0 24 24" width="17" height="17" aria-hidden="true"><path d="M7 17V4l-3 3M17 7v13l3-3" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+          <label class="field"><span><i>3</i> Destination</span><select id="to" disabled><option>Loading…</option></select></label>
+        </div>
+      </div>
+      <div class="auto-note"><span class="live-dot"></span> Routes update as you choose</div>
+      <div class="planner-tip"><span class="tip-icon" aria-hidden="true">↗</span><div><b>A route, and a plan B.</b><p>The solid line is your main route. The dashed line is your backup.</p></div></div>
+      <button class="btn share-btn" id="shareRoute" type="button" disabled>Copy route link <span aria-hidden="true">↗</span></button>
+    </aside>
+    <section id="workspace" class="workspace" role="tabpanel" aria-labelledby="tab-route" tabindex="0">
+      <div class="map-column">
+        <div class="map-card" id="mapCard">
+          <div class="map-head"><div><p class="section-label" id="mapNetwork">NETWORK VIEW</p><h2 id="mapTitle" class="map-title">Preparing your route</h2></div><button class="icon-btn" id="expandMap" type="button" aria-label="Expand network map" title="Expand map"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M8 3H3v5m13-5h5v5M3 16v5h5m13-5v5h-5M3 3l6 6m12-6-6 6M3 21l6-6m12 6-6-6"/></svg></button></div>
+          <div class="map-toolbar"><p id="mapHint" class="map-hint">Finding the main route and its backup.</p><label class="toggle"><input type="checkbox" id="showCosts"> <span>Link costs</span></label></div>
+          <div class="map-surface"><div id="map" class="map"><div class="loading"><span class="loader"></span>Connecting the dots…</div></div><span class="canvas-label" aria-hidden="true">TWO-PASS DIJKSTRA / NETWORK MODEL</span></div>
+          <div id="legend" class="legend"></div>
+          <p class="map-disclaimer" id="mapDisclaimer">Illustrative network. Not a live telecom map.</p>
+        </div>
+        <div id="networkStats" class="network-stats" aria-label="Network overview"></div>
+      </div>
+      <aside id="panel" class="panel" aria-label="Route results"><div class="card loading"><span class="loader"></span>Finding your routes…</div></aside>
+    </section>
+  </div>
+  <p id="activity" class="sr-only" role="status" aria-live="polite"></p>
+  <section id="results" class="page" role="tabpanel" aria-labelledby="tab-results" tabindex="0" hidden></section>
+  <section id="about" class="page" role="tabpanel" aria-labelledby="tab-about" tabindex="0" hidden>
     <div class="prose">
       <h2>How it works, in plain English</h2>
       <p>Think of a network as cities joined by roads. Each road has a cost, here its length in kilometres. Data travels from one city to another along the cheapest chain of roads.</p>
@@ -98,19 +93,12 @@
         <li>The packet-loss figures come from a simulation, not from real switches.</li>
         <li>Cities with only two links stay weak: if both break, nothing can reach them.</li>
       </ul>
-      <h3>How this website is built</h3>
-      <p>This page is plain HTML and JavaScript. Every path it shows comes from a small Python API (FastAPI) running on Vercel. The API imports <code>redundant_dijkstra.py</code>, the same file the Jupyter notebook uses, so the website and the dissertation results come from identical code. The <em>Experiment results</em> tab can re-check this live.</p>
-      <p class="links"><a href="/api/docs">API documentation</a> · <a href="/api/health">API health check</a></p>
     </div>
   </section>
 </main>
-
-<footer class="site-footer">
-  <div class="wrap">
-    <p>Optimizing Redundant Paths Using Dijkstra's Algorithm for Enhancing Network Reliability. MSc Computer Science, Baze University, Abuja. Only Dijkstra's algorithm is used for routing.</p>
-  </div>
-</footer>
-
+<footer class="site-footer"><div class="wrap footer-inner"><p><b>Made for understanding.</b> Built on two-pass Dijkstra.</p><p>Maryam Sirajo · MSc Computer Science<br>Baze University, Abuja · BU/23C/PGS/9469</p></div></footer>
+<button class="icon-btn back-top" id="backTop" type="button" aria-label="Back to top" hidden>↑</button>
+<dialog id="shareDialog"><form method="dialog"><button class="icon-btn dialog-close" aria-label="Close">×</button><h2>Share this route</h2><p>Copy this address to open the same network and route.</p><label class="field"><span>Link to this route</span><input id="shareUrl" readonly></label><button class="btn primary">Done</button></form></dialog>
 <script src="app.js"></script>
 </body>
 </html>

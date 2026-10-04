@@ -30,11 +30,13 @@ path that shares as few links as possible with the primary.
 
 The website has five tabs:
 
-1. **Route planner**: pick two places and see the primary path (solid) and the backup path (dashed), their costs, and whether they share any link.
-2. **Cut a link**: click links on the map to cut them and compare what plain Dijkstra and two-pass Dijkstra do, with the interruption time under the four restoration settings tested in E6.
-3. **Dijkstra step by step**: watch Dijkstra settle one node at a time, with every cost update.
-4. **Experiment results**: the headline numbers from E1 to E6, the charts, and a **live check** that rebuilds both routing tables on the server and compares them with the numbers the notebook saved.
+1. **Plan a route**: pick two places and see the primary path (solid) and the backup path (dashed), their costs, and whether they share any link.
+2. **Test a break**: click links on the map to cut them and compare what plain Dijkstra and two-pass Dijkstra do, with the interruption time under the four restoration settings tested in E6.
+3. **Watch the steps**: watch Dijkstra settle one node at a time, with every cost update.
+4. **Study results**: the headline numbers from E1 to E6, the charts, and a **live check** that rebuilds both routing tables on the server and compares them with the numbers the notebook saved.
 5. **How it works**: the method in plain English, and its limits.
+
+The interface uses a neutral charcoal and soft-white palette with blue main routes and dashed grey backups. It includes light and dark themes, a six-district quick start, an expanded network map, keyboard-friendly controls, and collapsible calculation details. Network, start and destination choices update the route automatically. The layout adapts to phones, tablets and desktop screens.
 
 API endpoints (documentation at `/api/docs` on the live site):
 

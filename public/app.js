@@ -17,10 +17,43 @@ const S = {
   nextPick: "from", installMs: 50, showCosts: false, results: null, check: null,
 };
 const cache = { net: {}, route: {}, trace: {} };
+let viewRequest = 0, networkRequest = 0;
+const NETWORK_COPY = {
+  nigeria: ['Nigeria · 20 cities', 'A hypothetical national network. Distances are in kilometres.'],
+  abuja: ['Abuja · 6 districts', 'A small example to learn with. Lower cost means a cheaper route.'],
+  ba50: ['Research · 50 nodes', 'A larger, generated network. Numbers are node names, not distances.'],
+};
+function announce(message) { $('#activity').textContent = message; }
+function setControlsBusy(busy) {
+  ['net', 'from', 'to', 'swap', 'shareRoute', 'startExample'].forEach(id => { $('#' + id).disabled = busy; });
+}
+function themeLabel() {
+  const dark = document.documentElement.dataset.theme === 'dark';
+  $('#themeToggle').setAttribute('aria-label', `Switch to ${dark ? 'light' : 'dark'} theme`);
+  $('#themeToggle').setAttribute('aria-pressed', String(dark));
+  document.querySelector('meta[name="theme-color"]').content = dark ? '#151517' : '#f7f7f5';
+}
+function focusInPanel() {
+  const el = document.activeElement;
+  if (!el || !$('#panel').contains(el)) return null;
+  if (el.id) return '#' + el.id;
+  if (el.dataset.step) return `[data-step="${el.dataset.step}"]`;
+  if (el.dataset.install) return `[data-install="${el.dataset.install}"]`;
+  return null;
+}
+function restorePanelFocus(selector) {
+  if (selector) $(selector, $('#panel'))?.focus({ preventScroll: true });
+}
+
 
 /* ------------------------------------------------------------------ API */
 async function api(path, opts) {
-  const res = await fetch(path, opts);
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 45000);
+  let res;
+  try { res = await fetch(path, { ...opts, signal: controller.signal }); }
+  catch (e) { throw new Error(e.name === 'AbortError' ? 'The server took too long to respond' : 'We could not reach the server. Check your connection'); }
+  finally { clearTimeout(timeout); }
   if (!res.ok) {
     let msg = `Request failed (${res.status})`;
     try { const j = await res.json(); if (j.detail) msg = typeof j.detail === "string" ? j.detail : JSON.stringify(j.detail); } catch (e) { /* not JSON */ }
@@ -30,7 +63,7 @@ async function api(path, opts) {
 }
 function showError(e) {
   const box = $("#error");
-  box.textContent = e ? `Something went wrong: ${e.message || e}. Please try again.` : "";
+  $("#errorMessage").textContent = e ? `Something went wrong: ${e.message || e}. Please try again.` : "";
   box.hidden = !e;
 }
 async function getNetwork(id) {
@@ -72,15 +105,18 @@ const LABEL_POS = {
 // The drawing uses real screen pixels (1 unit = 1 px), so text stays readable
 // on a phone and on a wide screen. It is redrawn when the window is resized.
 function geometry(d) {
-  const W = Math.max(300, Math.round($("#map").clientWidth || 800));
+  const W = Math.max(260, Math.round($("#map").clientWidth || 800));
   const narrow = W < 560;
-  const PAD = narrow ? 44 : 68;
+  const PAD = narrow ? 48 : 66;
   const maxX = Math.max(...d.nodes.map((n) => n.x));
   const maxY = Math.max(...d.nodes.map((n) => n.y));
-  const scale = (W - 2 * PAD) / Math.max(maxX, 0.0001);
+  const expanded = $('#mapCard').classList.contains('expanded');
+  const maxHeight = expanded ? 670 : narrow ? 420 : 450;
+  const scale = Math.min((W - 2 * PAD) / Math.max(maxX, 0.0001), (maxHeight - 2 * PAD) / Math.max(maxY, 0.0001));
   const H = Math.round(maxY * scale + 2 * PAD);
+  const offsetX = (W - maxX * scale) / 2;
   const pos = {};
-  for (const n of d.nodes) pos[n.id] = [PAD + n.x * scale, PAD + n.y * scale];
+  for (const n of d.nodes) pos[n.id] = [offsetX + n.x * scale, PAD + n.y * scale];
   return { W, H, pos, narrow };
 }
 
@@ -112,7 +148,7 @@ function renderMap(opts = {}) {
   const big = d.nodes.length > 25;
   const r = big ? (narrow ? 4.5 : 6) : (narrow ? 6 : 7.5);
   const fs = narrow || big ? 11.5 : 13.5;
-  const parts = [`<svg viewBox="0 0 ${W} ${H}" width="${W}" height="${H}" role="img" aria-label="${esc(d.label)} map" class="${narrow ? "narrow" : ""} ${big ? "small-labels" : ""}">`];
+  const parts = [`<svg viewBox="0 0 ${W} ${H}" width="${W}" height="${H}" role="group" aria-label="${esc(d.label)}. ${S.tab === 'cut' ? 'Select a link to break or repair it.' : 'Select a node to change the route.'}" class="${narrow ? "narrow" : ""} ${big ? "small-labels" : ""}">`];
 
   // links
   for (const l of d.links) {
@@ -164,7 +200,7 @@ function renderMap(opts = {}) {
     const cls = ["nd", opts.nodeClass ? opts.nodeClass(n.id) : "", opts.markTwo && n.degree === 2 ? "two" : ""].join(" ");
     const la = labelAttrs(d.id, n.id, x, y, r, fs);
     const dist = opts.nodeDist ? opts.nodeDist(n.id) : null;
-    parts.push(`<g class="${cls}" data-node="${esc(n.id)}" tabindex="0" role="button" aria-label="${esc(n.id)}">`,
+    parts.push(`<g class="${cls}" data-node="${esc(n.id)}" ${S.tab === "cut" ? 'role="img"' : 'tabindex="0" role="button"'} aria-label="${esc(n.id)}${n.id === S.from ? ", starting point" : n.id === S.to ? ", destination" : ""}"><circle class="node-hit" cx="${x}" cy="${y}" r="18"/>`,
       `<circle cx="${x}" cy="${y}" r="${r}"/>`,
       `<text x="${la.x}" y="${la.y}" text-anchor="${la.a}">${esc(n.id)}</text>`);
     if (dist !== null) parts.push(`<text class="dist" x="${la.x}" y="${la.y + (la.up ? -1 : 1) * (fs + 1)}" text-anchor="${la.a}">${esc(dist)}</text>`);
@@ -176,18 +212,18 @@ function renderMap(opts = {}) {
 
 function legend(items) {
   const sw = {
-    primary: `<svg width="28" height="8"><line x1="2" y1="4" x2="26" y2="4" stroke="#222" stroke-width="5" stroke-linecap="round"/></svg>`,
-    backup: `<svg width="28" height="8"><line x1="2" y1="4" x2="26" y2="4" stroke="#EB6834" stroke-width="4" stroke-dasharray="7 5" stroke-linecap="round"/></svg>`,
-    rerun: `<svg width="28" height="8"><line x1="2" y1="4" x2="26" y2="4" stroke="#2A78D6" stroke-width="5" stroke-linecap="round"/></svg>`,
-    faint: `<svg width="28" height="8"><line x1="2" y1="4" x2="26" y2="4" stroke="#222" stroke-opacity=".22" stroke-width="3"/></svg>`,
-    cut: `<svg width="22" height="22"><circle cx="11" cy="11" r="9" fill="#fff" stroke="#B42318" stroke-width="2"/><path d="M7 7l8 8M15 7l-8 8" stroke="#B42318" stroke-width="2.4" stroke-linecap="round"/></svg>`,
-    shared: `<svg width="28" height="12"><line x1="3" y1="6" x2="25" y2="6" stroke="#B42318" stroke-opacity=".25" stroke-width="10" stroke-linecap="round"/></svg>`,
-    tree: `<svg width="28" height="8"><line x1="2" y1="4" x2="26" y2="4" stroke="#14213D" stroke-width="4" stroke-linecap="round"/></svg>`,
-    settled: `<svg width="16" height="16"><circle cx="8" cy="8" r="6" fill="#14213D" stroke="#14213D" stroke-width="2"/></svg>`,
-    current: `<svg width="16" height="16"><circle cx="8" cy="8" r="6" fill="#EB6834" stroke="#14213D" stroke-width="2"/></svg>`,
-    frontier: `<svg width="16" height="16"><circle cx="8" cy="8" r="6" fill="#F7D9A8" stroke="#8A5300" stroke-width="2"/></svg>`,
-    unreached: `<svg width="16" height="16"><circle cx="8" cy="8" r="6" fill="#fff" stroke="#14213D" stroke-width="2"/></svg>`,
-    two: `<svg width="16" height="16"><circle cx="8" cy="8" r="6" fill="#fff" stroke="#14213D" stroke-width="2" stroke-dasharray="3 2"/></svg>`,
+    primary: `<svg width="28" height="8"><line x1="2" y1="4" x2="26" y2="4" stroke="var(--primary)" stroke-width="5" stroke-linecap="round"/></svg>`,
+    backup: `<svg width="28" height="8"><line x1="2" y1="4" x2="26" y2="4" stroke="var(--backup)" stroke-width="4" stroke-dasharray="7 5" stroke-linecap="round"/></svg>`,
+    rerun: `<svg width="28" height="8"><line x1="2" y1="4" x2="26" y2="4" stroke="var(--rerun)" stroke-width="5" stroke-linecap="round"/></svg>`,
+    faint: `<svg width="28" height="8"><line x1="2" y1="4" x2="26" y2="4" stroke="var(--primary)" stroke-opacity=".22" stroke-width="3"/></svg>`,
+    cut: `<svg width="22" height="22"><circle cx="11" cy="11" r="9" fill="var(--card)" stroke="var(--cut)" stroke-width="2"/><path d="M7 7l8 8M15 7l-8 8" stroke="var(--cut)" stroke-width="2.4" stroke-linecap="round"/></svg>`,
+    shared: `<svg width="28" height="12"><line x1="3" y1="6" x2="25" y2="6" stroke="var(--cut)" stroke-opacity=".25" stroke-width="10" stroke-linecap="round"/></svg>`,
+    tree: `<svg width="28" height="8"><line x1="2" y1="4" x2="26" y2="4" stroke="var(--ink)" stroke-width="4" stroke-linecap="round"/></svg>`,
+    settled: `<svg width="16" height="16"><circle cx="8" cy="8" r="6" fill="var(--ink)" stroke="var(--ink)" stroke-width="2"/></svg>`,
+    current: `<svg width="16" height="16"><circle cx="8" cy="8" r="6" fill="var(--backup)" stroke="var(--ink)" stroke-width="2"/></svg>`,
+    frontier: `<svg width="16" height="16"><circle cx="8" cy="8" r="6" fill="var(--warn-bg)" stroke="var(--warn)" stroke-width="2"/></svg>`,
+    unreached: `<svg width="16" height="16"><circle cx="8" cy="8" r="6" fill="var(--card)" stroke="var(--ink)" stroke-width="2"/></svg>`,
+    two: `<svg width="16" height="16"><circle cx="8" cy="8" r="6" fill="var(--card)" stroke="var(--ink)" stroke-width="2" stroke-dasharray="3 2"/></svg>`,
   };
   $("#legend").innerHTML = items.map(([k, t]) => `<span>${sw[k]}${esc(t)}</span>`).join("");
 }
@@ -209,56 +245,44 @@ const pairKey = (path) => path.slice(0, -1).map((n, i) => linkKey(n, path[i + 1]
 
 /* ------------------------------------------------------------ route tab */
 function renderRoute() {
-  const r = S.route, d = S.data, s = d.summary;
-  $("#mapTitle").textContent = `${S.from} to ${S.to}`;
-  $("#mapHint").textContent = `Tip: click a node to set ${S.nextPick === "from" ? "From" : "To"}.`;
+  const r = S.route, d = S.data, summary = d.summary;
+  $('#mapTitle').textContent = `${S.from} to ${S.to}`;
+  $('#mapHint').textContent = `Tap a point to set your ${S.nextPick === 'from' ? 'start' : 'destination'}.`;
   renderMap({
-    overlays: [{ path: r.primary, cls: "p-primary" }, { path: r.backup, cls: "p-backup" }],
-    shared: r.shared, markTwo: true,
-    nodeClass: (id) => (id === S.from || id === S.to ? "end" : ""),
+    overlays: [{ path: r.backup, cls: 'p-backup' }, { path: r.primary, cls: 'p-primary' }],
+    shared: r.shared,
+    nodeClass: id => id === S.from || id === S.to ? 'end' : '',
   });
-  const leg = [["primary", "Primary path (Pass 1)"], ["backup", "Backup path (Pass 2)"]];
-  if (r.shared.length) leg.push(["shared", "Link both paths share"]);
-  leg.push(["two", "Node with only two links"]);
-  legend(leg);
-
-  const pct = (100 * (r.backup_cost / r.primary_cost - 1)).toFixed(0);
-  const sharedTxt = r.shared.map((l) => l.join(" - ")).join(", ");
-  const traps = s.not_separate.map((p) =>
-    `<button class="chip-btn" data-pair="${esc(p.source)}|${esc(p.target)}">${esc(p.source)} to ${esc(p.target)}</button>`).join("");
-  const rulesX = (s.rules_both / s.rules_primary).toFixed(2);
-
-  $("#panel").innerHTML = `
-    <div class="card">
-      <h2>${esc(S.from)} to ${esc(S.to)}</h2>
-      <div class="kpis">
-        <div class="kpi"><div class="k-label"><span class="swatch"></span>Primary cost</div>
-          <div class="k-value">${nf(r.primary_cost, dec())}</div><div class="k-sub">${esc(unit())}, ${r.primary_hops} hops</div></div>
-        <div class="kpi"><div class="k-label"><span class="swatch backup"></span>Backup cost</div>
-          <div class="k-value">${nf(r.backup_cost, dec())}</div><div class="k-sub">${esc(unit())}, ${r.backup_hops} hops, ${pct}% longer</div></div>
-      </div>
-      <div class="path-label"><span class="swatch"></span>Primary (Pass 1)</div>${pathHtml(r.primary)}
-      <div class="path-label"><span class="swatch backup"></span>Backup (Pass 2)</div>${pathHtml(r.backup)}
-      ${r.disjoint
-        ? status("good", "<b>Fully separate.</b> The backup shares no link with the primary, so any single broken link on the primary is covered straight away.")
-        : status("warn", `<b>Shares ${r.shared.length === 1 ? "one link" : r.shared.length + " links"}: ${esc(sharedTxt)}.</b> If that link breaks, both paths break and Dijkstra has to run again.`)}
-      <p class="muted" style="margin-top:12px">Pass 2 added a penalty of ${nf(r.penalty, dec())} ${esc(unit())} (all link costs added together, plus one) to each primary link. The server ran both Dijkstra passes for this pair in ${nf(r.two_pass_ms, 3)} ms.</p>
+  const items = [['primary', 'Main route'], ['backup', 'Backup route']];
+  if (r.shared.length) items.push(['shared', 'Shared link']);
+  legend(items);
+  const pct = Math.round(100 * (r.backup_cost / r.primary_cost - 1));
+  const sharedTxt = r.shared.map(l => l.join(' to ')).join(', ');
+  const routeCard = (backup) => `<div class="route-card">
+    <div class="route-card-head"><span><span class="swatch ${backup ? 'backup' : ''}"></span><b>${backup ? 'Backup route' : 'Main route'}</b></span><span>${backup ? 'Plan B' : 'Lowest cost'}</span></div>
+    <div class="route-card-body"><div class="route-cost">${nf(backup ? r.backup_cost : r.primary_cost, dec())}<small>${esc(unit())}</small></div>
+    <div class="route-description">${backup ? r.backup_hops : r.primary_hops} links${backup ? ` · ${pct}% ${unit() === 'km' ? 'longer' : 'more cost'}` : ' · First choice'}</div>
+    ${pathHtml(backup ? r.backup : r.primary)}</div></div>`;
+  $('#panel').innerHTML = `<div class="card route-result">
+    <p class="section-label">YOUR ROUTES, AT A GLANCE</p><h2>A way there. A spare ready.</h2>
+    <div class="route-cards">${routeCard(false)}${routeCard(true)}</div>
+    ${r.disjoint ? status('good', '<b>Your backup uses separate links.</b><br>If one main-route link breaks, the backup can take over.')
+      : status('warn', `<b>These routes share ${r.shared.length} ${r.shared.length === 1 ? 'link' : 'links'}.</b><br>${esc(sharedTxt)}. A break here affects both routes.`)}
+    <button class="btn primary next-action" data-goto="cut">Test a broken link <span aria-hidden="true">→</span></button>
+    <details class="detail-fold" id="calculationDetails"><summary>How were these routes found?</summary><p>Dijkstra first found the cheapest route. We then added ${nf(r.penalty, dec())} ${esc(unit())} to each of its links and ran Dijkstra again to find a backup.</p><p class="muted">Both passes took ${nf(r.two_pass_ms, 3)} ms on the server. The route costs above show the original costs, without the added penalty.</p></details>
     </div>
-    <div class="card">
-      <h3>${esc(d.short)}: the whole routing table</h3>
-      <table class="mini">
-        <tr><td>Nodes, links</td><td class="num">${s.nodes}, ${s.links}</td></tr>
-        <tr><td>Pairs, each with a primary and a backup</td><td class="num">${s.pairs.toLocaleString("en-GB")}</td></tr>
-        <tr><td>Pairs with a fully separate backup</td><td class="num">${s.fully_separate.toLocaleString("en-GB")} (${nf(s.fully_separate_pct, 2)}%)</td></tr>
-        <tr><td>Median backup length / primary length</td><td class="num">${nf(s.median_stretch, 3)}</td></tr>
-        <tr><td>Switch rules: primary only, then with backups</td><td class="num">${s.rules_primary.toLocaleString("en-GB")} → ${s.rules_both.toLocaleString("en-GB")} (×${rulesX})</td></tr>
-        <tr><td>Time to build the whole table</td><td class="num">${nf(s.table_build_ms)} ms</td></tr>
-      </table>
-      ${s.not_separate.length
-        ? `<p style="margin-top:12px"><b>Pairs whose backup shares a link (traps):</b> ${s.not_separate.every((p) => p.separate_pair_exists) ? "a fully separate pair of paths does exist for each, but two separate Dijkstra runs missed it." : ""}</p><div>${traps}</div>`
-        : `<p style="margin-top:12px">Every pair got a fully separate backup.</p>`}
-      ${s.two_link_nodes.length ? `<p class="muted" style="margin-top:10px">Nodes with only two links (${s.two_link_nodes.length}): ${esc([...s.two_link_nodes].sort(natural).join(", "))}. If both of their links break, no method can reach them.</p>` : ""}
-    </div>`;
+    <details class="card routing-detail" id="networkDetails"><summary>Explore this network’s numbers</summary>
+      <table class="mini"><tbody>
+      <tr><td>Places / links</td><td class="num">${summary.nodes} / ${summary.links}</td></tr>
+      <tr><td>Pairs of places</td><td class="num">${nf(summary.pairs, 0)}</td></tr>
+      <tr><td>Pairs with a separate backup</td><td class="num">${summary.fully_separate} (${nf(summary.fully_separate_pct, 2)}%)</td></tr>
+      <tr><td>Typical backup / main cost</td><td class="num">${nf(summary.median_stretch, 3)}×</td></tr>
+      <tr><td>Switch rules, main only / with backups</td><td class="num">${nf(summary.rules_primary, 0)} / ${nf(summary.rules_both, 0)}</td></tr>
+      <tr><td>Time to build all routes</td><td class="num">${nf(summary.table_build_ms)} ms</td></tr>
+      </tbody></table>
+      ${summary.not_separate.length ? `<p style="margin-top:14px">Try a pair whose routes share a link:</p>${summary.not_separate.map(pair => `<button class="chip-btn" data-pair="${esc(pair.source)}|${esc(pair.target)}">${esc(pair.source)} → ${esc(pair.target)}</button>`).join('')}<p class="muted">A separate pair may exist even when this two-pass method does not find it.</p>` : '<p style="margin-top:12px">Every pair has a separate backup.</p>'}
+      ${summary.two_link_nodes.length ? `<p class="muted" style="margin-top:12px">Places with only two links: ${esc(summary.two_link_nodes.join(', '))}. If both break, the place becomes unreachable.</p>` : ''}
+    </details>`;
 }
 
 /* -------------------------------------------------------------- cut tab */
@@ -295,8 +319,8 @@ function methodCard(title, m, res, isTwo) {
 
 function renderCut() {
   const res = S.cutRes, cuts = new Set(S.cuts);
-  $("#mapTitle").textContent = `Cut links between ${S.from} and ${S.to}`;
-  $("#mapHint").textContent = "Click a link to cut it. Click it again to repair it.";
+  $("#mapTitle").textContent = `${S.from} to ${S.to}`;
+  $("#mapHint").textContent = "Tap a line to break it. Tap again to repair.";
   const overlays = [], leg = [];
   if (res) {
     const p = res.plain, t = res.two_pass;
@@ -332,16 +356,18 @@ function renderCut() {
   }
   $("#panel").innerHTML = `
     <div class="card">
-      <h2>What happens when links break?</h2>
+      <p class="section-label">TRY A FAILURE</p><h2>Does your backup hold?</h2><p>Break a main-route link and compare how each method recovers.</p>
       <div class="btn-row">
-        <button class="btn primary" id="cutPrimary">Cut a link on the primary</button>
+        <button class="btn primary" id="cutPrimary">Break next route link</button>
         <button class="btn" id="cutClear" ${S.cuts.length ? "" : "disabled"}>Repair all</button>
       </div>
       <div>${chips}</div>
-      <p class="muted" style="margin:12px 0 6px">Restoration time for a Dijkstra re-run (notice + re-run + install), the four settings tested in E6:</p>
+      <details class="cut-select"><summary>Choose a specific link</summary><label class="field"><span>Link to break or repair</span><select id="linkChoice">${S.data.links.map(l => { const key = linkKey(l.u, l.v); return `<option value="${esc(key)}">${esc(l.u)} ↔ ${esc(l.v)}${cuts.has(key) ? ' (broken)' : ''}</option>`; }).join('')}</select></label><button class="btn" id="toggleLink">Break / repair selected link</button></details>
+      <details class="detail-fold" id="timingDetails"><summary>Recovery timing settings</summary><p class="muted">Choose the simulated detection and installation delay. Measured calculation time is added to this.</p>
       <div class="seg" role="group" aria-label="Restoration time setting">
         ${INSTALL_CHOICES.map(([v, l]) => `<button type="button" data-install="${v}" aria-pressed="${S.installMs === v}">${l}</button>`).join("")}
       </div>
+      </details><p class="cut-note muted">A simulation, not a live network outage.</p>
     </div>
     ${res ? methodCard("Plain Dijkstra (one path)", res.plain, res, false) + methodCard("Two-pass Dijkstra (primary + backup)", res.two_pass, res, true) : `<div class="card loading">Working…</div>`}
     ${summary ? `<div class="card">${summary}</div>` : ""}`;
@@ -349,6 +375,7 @@ function renderCut() {
 
 /* ------------------------------------------------------------ trace tab */
 function renderTrace() {
+  const focused = focusInPanel();
   const tr = S.trace, steps = tr.steps, n = steps.length;
   const k = Math.min(Math.max(S.step, 1), n);
   const cur = steps[k - 1], prev = k > 1 ? steps[k - 2] : null;
@@ -417,6 +444,7 @@ function renderTrace() {
     </div>`;
   const range = $("#stepRange");
   range.addEventListener("input", () => { stopPlay(); S.step = Number(range.value); renderTrace(); });
+  restorePanelFocus(focused);
 }
 
 function stopPlay() { S.playing = false; clearInterval(S.timer); S.timer = null; }
@@ -474,11 +502,11 @@ async function renderResults() {
   ];
   const v = k.versions;
   el.innerHTML = `
-    <div><h2>Experiment results</h2><p class="muted">These numbers are read from <code>results/key_numbers.json</code>, written by the Jupyter notebook. Software: Python ${esc(v.python)}, NetworkX ${esc(v.networkx)}, NumPy ${esc(v.numpy)}, SciPy ${esc(v.scipy)}.</p></div>
+    <div><h2>Experiment results</h2><p class="muted">Six experiments, using the same routing method as this planner. These are saved study results. Use the live check below to verify the routing numbers again.</p></div>
     <div class="tiles">${tiles.map(([a, b, c]) => `<div class="tile"><div class="t-exp">${a}</div><div class="t-value">${b}</div><div class="t-text">${c}</div></div>`).join("")}</div>
     <div class="card" id="checkCard">
       <h3>Live check: does this website give the same answers as the notebook?</h3>
-      <p>The button asks the server to rebuild both routing tables with <code>redundant_dijkstra.py</code> and compare them with the numbers the notebook saved.</p>
+      <p>Recalculate the routes and check whether they match the saved study. This may take a few seconds.</p>
       <div class="btn-row"><button class="btn primary" id="runCheck">Run the live check</button></div>
       <div id="checkOut">${S.check ? checkHtml(S.check) : ""}</div>
     </div>
@@ -511,31 +539,85 @@ function writeHash() {
 }
 
 async function refresh() {
+  const request = ++viewRequest;
+  const tab = S.tab;
+  const focused = focusInPanel();
+  const openDetails = [...document.querySelectorAll('#panel details[open][id]')].map(el => el.id);
   showError(null);
   writeHash();
-  const work = ["route", "cut", "trace"].includes(S.tab);
-  $("#workspace").hidden = !work;
-  $("#results").hidden = S.tab !== "results";
-  $("#about").hidden = S.tab !== "about";
-  document.querySelectorAll(".tab").forEach((t) => t.setAttribute("aria-selected", String(t.dataset.tab === S.tab)));
+  const work = ['route', 'cut', 'trace'].includes(tab);
+  $('#studio').hidden = !work;
+  $('#workspace').hidden = !work;
+  $('#results').hidden = tab !== 'results';
+  $('#about').hidden = tab !== 'about';
+  $('#workspace').setAttribute('aria-labelledby', `tab-${tab}`);
+  document.querySelectorAll('.tab').forEach(t => {
+    t.setAttribute('aria-selected', String(t.dataset.tab === tab));
+    t.tabIndex = t.dataset.tab === tab ? 0 : -1;
+  });
+  $('#workspace').setAttribute('aria-busy', String(work));
+  $('#workspace').inert = work;
+  S.redraw = null;
+  setControlsBusy(true);
+  announce(work ? 'Updating your view.' : '');
   try {
-    if (S.tab === "route") { S.route = await getRoute(); renderRoute(); S.redraw = renderRoute; }
-    else if (S.tab === "cut") { S.cutRes = await getCut(); renderCut(); S.redraw = renderCut; }
-    else if (S.tab === "trace") { S.trace = await getTrace(); renderTrace(); S.redraw = renderTrace; }
-    else if (S.tab === "results") await renderResults();
-  } catch (e) { showError(e); }
+    if (tab === 'route') {
+      const result = await getRoute(); if (request !== viewRequest) return;
+      S.route = result; renderRoute(); S.redraw = renderRoute;
+    } else if (tab === 'cut') {
+      const result = await getCut(); if (request !== viewRequest) return;
+      S.cutRes = result; renderCut(); S.redraw = renderCut;
+    } else if (tab === 'trace') {
+      const result = await getTrace(); if (request !== viewRequest) return;
+      S.trace = result; renderTrace(); S.redraw = renderTrace;
+    } else if (tab === 'results') await renderResults();
+    if (request !== viewRequest) return;
+    openDetails.forEach(id => { const el = document.getElementById(id); if (el) el.open = true; });
+    announce(work ? `${S.from} to ${S.to}. ${tab === 'route' ? 'Main and backup routes ready.' : 'View ready.'}` : `${tab === 'results' ? 'Study results' : 'How it works'} ready.`);
+  } catch (e) { if (request === viewRequest) showError(e); }
+  finally {
+    if (request === viewRequest) {
+      $('#workspace').setAttribute('aria-busy', 'false');
+      $('#workspace').inert = false;
+      setControlsBusy(!S.data);
+      if ($('#mapCard').classList.contains('expanded')) { $('#panel').inert = true; $('#expandMap').focus({ preventScroll: true }); }
+      else restorePanelFocus(focused);
+    }
+  }
 }
 
 async function setNetwork(id, from, to) {
+  const request = ++networkRequest;
+  ++viewRequest;
   stopPlay();
-  S.net = id;
-  S.data = await getNetwork(id);
-  const ids = S.data.nodes.map((n) => n.id);
-  S.from = ids.includes(from) ? from : S.data.default[0];
-  S.to = ids.includes(to) && to !== S.from ? to : (S.data.default[1] !== S.from ? S.data.default[1] : ids.find((x) => x !== S.from));
-  S.cuts = []; S.step = 1; S.nextPick = "from";
-  $("#net").value = id;
-  fillSelects();
+  setControlsBusy(true);
+  $('#workspace').setAttribute('aria-busy', 'true');
+  $('#workspace').inert = true;
+  S.redraw = null;
+  try {
+    const data = await getNetwork(id);
+    if (request !== networkRequest) return false;
+    S.net = id; S.data = data;
+    const ids = S.data.nodes.map(n => n.id);
+    S.from = ids.includes(from) ? from : S.data.default[0];
+    S.to = ids.includes(to) && to !== S.from ? to : (S.data.default[1] !== S.from ? S.data.default[1] : ids.find(x => x !== S.from));
+    S.cuts = []; S.step = 1; S.nextPick = 'from';
+    $('#net').value = id;
+    $('#networkNote').textContent = NETWORK_COPY[id][1];
+    $('#mapNetwork').textContent = NETWORK_COPY[id][0].toUpperCase();
+    $('#mapDisclaimer').textContent = id === 'nigeria' ? 'Hypothetical network. Not a live telecom map.' : id === 'abuja' ? 'Teaching example. Link costs are illustrative.' : 'Synthetic network. Node positions are for illustration.';
+    $('#networkStats').innerHTML = `<div><strong>${data.summary.nodes}</strong><span>${id === 'ba50' ? 'Network nodes' : id === 'abuja' ? 'Abuja districts' : 'Nigerian cities'}</span></div><div><strong>${data.summary.links}</strong><span>Connecting links</span></div><div><strong>${nf(data.summary.fully_separate_pct, data.summary.fully_separate_pct === 100 ? 0 : 1)}<small>%</small></strong><span>Pairs with separate backups</span></div>`;
+    fillSelects();
+    return true;
+  } catch (e) {
+    if (request === networkRequest) {
+      $('#net').value = S.net;
+      $('#workspace').setAttribute('aria-busy', 'false');
+      $('#workspace').inert = false;
+      setControlsBusy(!S.data);
+    }
+    throw e;
+  }
 }
 
 function setPair(from, to) {
@@ -546,18 +628,58 @@ function setPair(from, to) {
 }
 
 function bind() {
-  $("#net").addEventListener("change", async (e) => { try { await setNetwork(e.target.value); refresh(); } catch (err) { showError(err); } });
+  $("#net").addEventListener("change", async (e) => { try { if (await setNetwork(e.target.value)) await refresh(); } catch (err) { showError(err); } });
   $("#from").addEventListener("change", (e) => {
     const f = e.target.value;
     setPair(f, f === S.to ? S.data.nodes.map((n) => n.id).sort(natural).find((x) => x !== f) : S.to);
   });
   $("#to").addEventListener("change", (e) => setPair(S.from, e.target.value));
   $("#swap").addEventListener("click", () => setPair(S.to, S.from));
-  $("#showCosts").addEventListener("change", (e) => { S.showCosts = e.target.checked; refresh(); });
-  document.querySelectorAll(".tab").forEach((t) => t.addEventListener("click", () => { stopPlay(); S.tab = t.dataset.tab; refresh(); }));
+  $("#showCosts").addEventListener("change", (e) => { S.showCosts = e.target.checked; if (S.redraw) S.redraw(); });
+  document.querySelectorAll('.tab').forEach(t => t.addEventListener('click', () => goTab(t.dataset.tab)));
+  $('.tabs').addEventListener('keydown', e => {
+    const tabs = [...document.querySelectorAll('.tab')];
+    const index = tabs.indexOf(e.target);
+    if (index < 0 || !['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(e.key)) return;
+    e.preventDefault();
+    const next = e.key === 'Home' ? 0 : e.key === 'End' ? tabs.length - 1 : (index + (e.key === 'ArrowRight' ? 1 : -1) + tabs.length) % tabs.length;
+    tabs[next].focus(); goTab(tabs[next].dataset.tab);
+  });
+  document.addEventListener('click', e => { const trigger = e.target.closest('[data-goto]'); if (trigger) goTab(trigger.dataset.goto, true); });
+  $('#themeToggle').addEventListener('click', () => {
+    document.documentElement.dataset.theme = document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark';
+    try { localStorage.setItem('path-planner-theme', document.documentElement.dataset.theme); } catch (e) { /* private browser mode */ }
+    themeLabel();
+  });
+  themeLabel();
+  $('#startExample').addEventListener('click', async () => {
+    try { S.tab = 'route'; if (await setNetwork('abuja')) await refresh(); $('#planner').scrollIntoView({ behavior: 'smooth', block: 'start' }); }
+    catch (e) { showError(e); }
+  });
+  $('#retry').addEventListener('click', async () => {
+    try { if (!S.data) await loadInitial(); else await refresh(); } catch (e) { showError(e); }
+  });
+  $('#shareRoute').addEventListener('click', async () => {
+    try { await navigator.clipboard.writeText(location.href); $('#shareRoute').textContent = 'Link copied ✓'; announce('Link copied to clipboard.'); setTimeout(() => { $('#shareRoute').innerHTML = 'Copy route link <span aria-hidden="true">↗</span>'; }, 2200); }
+    catch (e) { $('#shareUrl').value = location.href; $('#shareDialog').showModal(); $('#shareUrl').select(); }
+  });
+  $('#expandMap').addEventListener('click', () => toggleMap());
+  document.addEventListener('keydown', e => {
+    if (!$('#mapCard').classList.contains('expanded')) return;
+    if (e.key === 'Escape') { e.preventDefault(); toggleMap(false); }
+    if (e.key === 'Tab') {
+      const els = [...$('#mapCard').querySelectorAll('button, input, [tabindex="0"]')];
+      const first = els[0], last = els[els.length - 1];
+      if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
+      else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
+    }
+  });
+  $('#backTop').addEventListener('click', () => { window.scrollTo({ top: 0, behavior: 'smooth' }); $('.brand').focus({ preventScroll: true }); });
+  window.addEventListener('scroll', () => { $('#backTop').hidden = window.scrollY < 500; }, { passive: true });
 
   const map = $("#map");
   const nodeAct = (id) => {
+    if (S.tab === "cut") return;
     if (S.tab === "trace") { setPair(id, id === S.to ? S.from : S.to); return; }
     if (S.nextPick === "from") {
       S.nextPick = "to";
@@ -585,9 +707,10 @@ function bind() {
   $("#panel").addEventListener("click", async (e) => {
     const b = e.target.closest("button");
     if (!b) return;
-    if (b.dataset.pair) { const [s, t] = b.dataset.pair.split("|"); setPair(s, t); }
+    if (b.id === 'toggleLink') { const key = $('#linkChoice').value; S.cuts = S.cuts.includes(key) ? S.cuts.filter(k => k !== key) : [...S.cuts, key]; refresh(); }
+    else if (b.dataset.pair) { const [s, t] = b.dataset.pair.split("|"); setPair(s, t); }
     else if (b.dataset.uncut) { S.cuts = S.cuts.filter((x) => x !== b.dataset.uncut); refresh(); }
-    else if (b.dataset.install) { S.installMs = Number(b.dataset.install); renderCut(); }
+    else if (b.dataset.install) { const focused = focusInPanel(); S.installMs = Number(b.dataset.install); renderCut(); $("#timingDetails").open = true; restorePanelFocus(focused); }
     else if (b.dataset.step) stepCmd(b.dataset.step);
     else if (b.id === "cutClear") { S.cuts = []; refresh(); }
     else if (b.id === "cutPrimary") {
@@ -606,16 +729,17 @@ function bind() {
     clearTimeout(rt);
     rt = setTimeout(() => {
       const w = $("#map").clientWidth;
-      if (w && w !== lastW && S.redraw && !$("#workspace").hidden) { lastW = w; S.redraw(); }
+      if (w && w !== lastW && S.redraw && !$("#workspace").hidden) { lastW = w; const open = [...document.querySelectorAll('#panel details[open][id]')].map(el => el.id); S.redraw(); open.forEach(id => { const el = document.getElementById(id); if (el) el.open = true; }); }
     }, 150);
   });
 
   $("#results").addEventListener("click", async (e) => {
-    if (e.target.id !== "runCheck") return;
-    e.target.disabled = true; e.target.textContent = "Checking…";
+    const button = e.target.closest("#runCheck");
+    if (!button) return;
+    button.disabled = true; button.textContent = "Checking…";
     try { S.check = await api("/api/check"); $("#checkOut").innerHTML = checkHtml(S.check); }
     catch (err) { showError(err); }
-    e.target.disabled = false; e.target.textContent = "Run the live check again";
+    button.disabled = false; button.textContent = "Run the live check again";
   });
 }
 
@@ -624,19 +748,39 @@ async function applyHash() {
   const h = new URLSearchParams(location.hash.slice(1));
   const net = S.nets.some((n) => n.id === h.get("net")) ? h.get("net") : "nigeria";
   S.tab = ["route", "cut", "trace", "results", "about"].includes(h.get("tab")) ? h.get("tab") : "route";
-  await setNetwork(net, h.get("from"), h.get("to"));
-  refresh();
+  if (await setNetwork(net, h.get("from"), h.get("to"))) await refresh();
 }
 
+async function goTab(tab, scroll = false) {
+  stopPlay();
+  if ($('#mapCard').classList.contains('expanded')) toggleMap(false);
+  S.tab = tab;
+  if (S.data) await refresh();
+  if (scroll) { $(`#tab-${tab}`).focus({ preventScroll: true }); $('.tabs-bar').scrollIntoView({ behavior: 'smooth', block: 'start' }); }
+}
+function toggleMap(force) {
+  const card = $('#mapCard');
+  const expanded = typeof force === 'boolean' ? force : !card.classList.contains('expanded');
+  card.classList.toggle('expanded', expanded);
+  if (expanded) { card.setAttribute('role', 'dialog'); card.setAttribute('aria-modal', 'true'); card.setAttribute('aria-label', 'Expanded network map'); }
+  else { card.removeAttribute('role'); card.removeAttribute('aria-modal'); card.removeAttribute('aria-label'); }
+  document.body.style.overflow = expanded ? 'hidden' : '';
+  ['.site-header', '.intro', '.tabs-bar', '#planner', '#panel', '#networkStats', '.site-footer'].forEach(sel => { $(sel).inert = expanded; });
+  $('#expandMap').setAttribute('aria-label', expanded ? 'Close expanded map' : 'Expand network map');
+  if (S.redraw) S.redraw();
+  $('#expandMap').focus({ preventScroll: true });
+}
+async function loadInitial() {
+  showError(null);
+  setControlsBusy(true);
+  S.nets = await api('/api/networks');
+  $('#net').innerHTML = S.nets.map(n => `<option value="${n.id}">${esc(NETWORK_COPY[n.id]?.[0] || n.label)}</option>`).join('');
+  await applyHash();
+}
 async function init() {
   bind();
-  try {
-    S.nets = await api("/api/networks");
-    $("#net").innerHTML = S.nets.map((n) => `<option value="${n.id}">${esc(n.label)}</option>`).join("");
-    await applyHash();
-    window.addEventListener("hashchange", () => applyHash().catch(showError));
-  } catch (e) {
-    showError(e);
-  }
+  window.addEventListener('hashchange', () => applyHash().catch(showError));
+  try { await loadInitial(); }
+  catch (e) { showError(e); $('#map').innerHTML = '<div class="loading">Your network could not load.<br>Use “Try again” above to reconnect.</div>'; $('#panel').innerHTML = ''; }
 }
 init();
