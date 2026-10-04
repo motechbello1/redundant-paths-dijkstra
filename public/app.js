@@ -110,10 +110,13 @@ function geometry(d) {
   const PAD = narrow ? 48 : 66;
   const maxX = Math.max(...d.nodes.map((n) => n.x));
   const maxY = Math.max(...d.nodes.map((n) => n.y));
-  const scale = (W - 2 * PAD) / Math.max(maxX, 0.0001);
+  const expanded = $('#mapCard').classList.contains('expanded');
+  const maxHeight = expanded ? 670 : narrow ? 420 : 450;
+  const scale = Math.min((W - 2 * PAD) / Math.max(maxX, 0.0001), (maxHeight - 2 * PAD) / Math.max(maxY, 0.0001));
   const H = Math.round(maxY * scale + 2 * PAD);
+  const offsetX = (W - maxX * scale) / 2;
   const pos = {};
-  for (const n of d.nodes) pos[n.id] = [PAD + n.x * scale, PAD + n.y * scale];
+  for (const n of d.nodes) pos[n.id] = [offsetX + n.x * scale, PAD + n.y * scale];
   return { W, H, pos, narrow };
 }
 
@@ -145,7 +148,7 @@ function renderMap(opts = {}) {
   const big = d.nodes.length > 25;
   const r = big ? (narrow ? 4.5 : 6) : (narrow ? 6 : 7.5);
   const fs = narrow || big ? 11.5 : 13.5;
-  const parts = [`<svg viewBox="0 0 ${W} ${H}" width="${W}" height="${H}" role="group" aria-label="${esc(d.label)}. Select a node to change the route." class="${narrow ? "narrow" : ""} ${big ? "small-labels" : ""}">`];
+  const parts = [`<svg viewBox="0 0 ${W} ${H}" width="${W}" height="${H}" role="group" aria-label="${esc(d.label)}. ${S.tab === 'cut' ? 'Select a link to break or repair it.' : 'Select a node to change the route.'}" class="${narrow ? "narrow" : ""} ${big ? "small-labels" : ""}">`];
 
   // links
   for (const l of d.links) {
@@ -197,7 +200,7 @@ function renderMap(opts = {}) {
     const cls = ["nd", opts.nodeClass ? opts.nodeClass(n.id) : "", opts.markTwo && n.degree === 2 ? "two" : ""].join(" ");
     const la = labelAttrs(d.id, n.id, x, y, r, fs);
     const dist = opts.nodeDist ? opts.nodeDist(n.id) : null;
-    parts.push(`<g class="${cls}" data-node="${esc(n.id)}" tabindex="0" role="button" aria-label="${esc(n.id)}${n.id === S.from ? ", starting point" : n.id === S.to ? ", destination" : ""}"><circle class="node-hit" cx="${x}" cy="${y}" r="18"/>`,
+    parts.push(`<g class="${cls}" data-node="${esc(n.id)}" ${S.tab === "cut" ? 'role="img"' : 'tabindex="0" role="button"'} aria-label="${esc(n.id)}${n.id === S.from ? ", starting point" : n.id === S.to ? ", destination" : ""}"><circle class="node-hit" cx="${x}" cy="${y}" r="18"/>`,
       `<circle cx="${x}" cy="${y}" r="${r}"/>`,
       `<text x="${la.x}" y="${la.y}" text-anchor="${la.a}">${esc(n.id)}</text>`);
     if (dist !== null) parts.push(`<text class="dist" x="${la.x}" y="${la.y + (la.up ? -1 : 1) * (fs + 1)}" text-anchor="${la.a}">${esc(dist)}</text>`);
@@ -577,7 +580,8 @@ async function refresh() {
       $('#workspace').setAttribute('aria-busy', 'false');
       $('#workspace').inert = false;
       setControlsBusy(!S.data);
-      restorePanelFocus(focused);
+      if ($('#mapCard').classList.contains('expanded')) { $('#panel').inert = true; $('#expandMap').focus({ preventScroll: true }); }
+      else restorePanelFocus(focused);
     }
   }
 }
@@ -730,11 +734,12 @@ function bind() {
   });
 
   $("#results").addEventListener("click", async (e) => {
-    if (e.target.id !== "runCheck") return;
-    e.target.disabled = true; e.target.textContent = "Checking…";
+    const button = e.target.closest("#runCheck");
+    if (!button) return;
+    button.disabled = true; button.textContent = "Checking…";
     try { S.check = await api("/api/check"); $("#checkOut").innerHTML = checkHtml(S.check); }
     catch (err) { showError(err); }
-    e.target.disabled = false; e.target.textContent = "Run the live check again";
+    button.disabled = false; button.textContent = "Run the live check again";
   });
 }
 
